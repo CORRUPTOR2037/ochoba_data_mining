@@ -4,7 +4,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 from src.common.config_loader import ConfigLoader
-from src.common.data_base_wrapper import DataBaseWrapper
+from src.common.data_base_wrapper import GetDataBaseWrapper
 from src.common.ochoba_api_wrapper import OchobaApiWrapper
 
 
@@ -19,7 +19,7 @@ class GetPosts:
     def __init__(self):
         config = ConfigLoader.load()
         self.api = OchobaApiWrapper(config["api"])
-        self.db = DataBaseWrapper(config["db"])
+        self.db = GetDataBaseWrapper(config["db"])
         self.stats = self.Stats()
 
     def get_posts(self):
