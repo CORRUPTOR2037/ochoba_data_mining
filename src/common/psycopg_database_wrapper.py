@@ -44,3 +44,7 @@ class RemoteDataBaseWrapper:
             y.append(row[1])
         return x, y
 
+class UrlDataBaseWrapper(RemoteDataBaseWrapper):
+    def __init__(self, url):
+        self.conn = psycopg2.connect(url, sslmode='require')
+        self.cursor = self.conn.cursor()
