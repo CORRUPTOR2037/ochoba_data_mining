@@ -180,6 +180,13 @@ class GetPosts:
                         now integer
                     );
             """)
+        self.db.execute("""
+                    create table if not exists published (
+                        "id" INTEGER NOT NULL DEFAULT 'nextval(''published_id_seq''::regclass)',
+                        "data" VARCHAR NULL DEFAULT NULL,
+                        "pub_time" INTEGER NULL DEFAULT '(date_part(''epoch''::text, CURRENT_TIMESTAMP))::integer'
+                    );
+            """)
         
         last_post_time = time.time() - 2 * 60 * 60 * 24
 
