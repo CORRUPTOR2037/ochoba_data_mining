@@ -3,3 +3,4 @@ psycopg2
 matplotlib>=3.3.0
 requests_toolbelt
 plotly
+flask
