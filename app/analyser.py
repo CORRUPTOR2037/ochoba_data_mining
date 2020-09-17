@@ -6,6 +6,7 @@ from datetime import datetime
 from dataclasses import dataclass
 import sys, traceback
 
+from src.common.score_evaluation import score_evaluation
 from src.common.config_loader import ConfigLoader
 from src.common.data_base_wrapper import GetDataBaseWrapper
 from src.common.ochoba_api_wrapper import OchobaApiWrapper
@@ -24,20 +25,17 @@ class GetPosts:
         
     def scan(self):
         print("Started at " + datetime.now().strftime("%H:%M:%S"))
-        
-        print("update categories")
-        self.__update_categories()
-        
+
         print("check timeline")
         parsed_entries = 0
         timeline_request_appendix = ''
         last_post_time = self.db.execute_select_one("select value from parse_data where key='last_post_time';", [])[0]
-        first_post = None
+        first_post = last_post_time
         
         while parsed_entries < self.timeline_length:
-            time.sleep(self.api.min_delay)
-            
-            timeline = self.api.execute("timeline?allSite=true" + timeline_request_appendix)
+
+            url = "timeline?allSite=true" + timeline_request_appendix
+            timeline = self.api.execute_with_delay(url)
             
             if self.__is_error(timeline):
                 continue
@@ -53,19 +51,27 @@ class GetPosts:
                 post = post["data"]
                 
                 if post["date"] < last_post_time:
+                    parsed_entries = self.timeline_length
                     break
                 if post["isEditorial"] > 0: continue
-                if first_post is None:
-                    first_post = post["date"]
+                
+                first_post = max(last_post_time, post["date"])
                 
                 parsed_entries += 1
                 self.add_post_to_database(post)
 
             self.db.commit()
             
-            timeline_request_appendix = '&lastId=%d?lastSortingValue=%d' % (timeline["result"]["lastId"], timeline["result"]["lastSortingValue"])
+            try:
+                timeline_request_appendix = '&lastId=%d&lastSortingValue=%d' % (timeline["result"]["lastId"], timeline["result"]["lastSortingValue"])
+            except:
+                print("no pagination data found at", url, timeline["result"]["lastId"], timeline["result"]["lastSortingValue"])
+                break
         
         self.db.execute_update("update parse_data set value=%d where key='last_post_time';", (first_post))
+        
+        print("update categories")
+        self.__update_categories()
         
         posts = self.db.execute_select("select * from posts where statsCalculated < 5 order by publication_time asc", [])
         if posts is None: return
@@ -78,8 +84,7 @@ class GetPosts:
             if post[6] == 1 and timeFromPublication <  7200: continue
             if post[6] == 2 and timeFromPublication < 10800: continue
             
-            time.sleep(self.api.min_delay)
-            post_stats = self.api.execute("content?id=%d" % post[0])
+            post_stats = self.api.execute_with_delay("content?id=%d" % post[0])
             if self.__is_error(post_stats):
                 self.db.execute("delete from posts where post_id=%d" % post[0])
                 continue
@@ -147,9 +152,11 @@ class GetPosts:
                         subscribers integer
                     );
             """)
+
         self.db.execute("""
                     create table if not exists posts (
                         post_id integer primary key not null,
+                        author_id integer not null,
                         cat_id integer not null,
                         name varchar not null,
                         publication_time integer not null,
@@ -161,6 +168,7 @@ class GetPosts:
                         last_update_time integer not null
                     );
             """)
+
         self.db.execute("""
                     create table if not exists posts_views (
                         post_id integer not null,
@@ -223,11 +231,10 @@ class GetPosts:
         self.db.commit()
         
     def __update_categories(self):
-        self.categories = self.db.execute_select("select id, userid, is_user from categories;", [])
+        self.categories = self.db.execute_select("select id, userid from categories;", [])
         for line in self.categories:
-            time.sleep(self.api.min_delay)
-            
-            json = self.__get_category(line[1], line[2])
+
+            json = self.__get_category(line[1])
             if json is None:
                 continue
             
@@ -239,8 +246,8 @@ class GetPosts:
         self.db.commit()
               
     
-    def __get_category(self, userid, isuser):
-        response = self.api.execute('subsite?id=' + str(userid))
+    def __get_category(self, userid):
+        response = self.api.execute_with_delay('subsite?id=' + str(userid))
                 
         if self.__is_error(response):
             return None
@@ -259,11 +266,16 @@ class GetPosts:
             traceback.print_stack()
             print(datetime.now().strftime("%H:%M:%S") + ": 404 Not Found ")
             return True
+        if "result" not in response.json():
+            # No result
+            traceback.print_stack()
+            print(datetime.now().strftime("%H:%M:%S") + ": No result on response, message: " + response.json()["message"])
+            return True
         return False
 
 
     def add_post_to_database(self, post):
-        # print(post)
+
         if self.db.execute_select_one("select * from posts where post_id=%d", (post["id"])) is not None:
             return
         
@@ -273,7 +285,7 @@ class GetPosts:
         data["cat_id"] = post["subsite"]["id"]
         data["name"] = re.sub(r"[\"\']", "", post["title"])
         if not data["name"]:
-            data["name"] = 'NoName'
+            data["name"] = '-'
         data["media"] = 0
         data["words"] = 0
         data["publication_time"] = post["date"]
@@ -315,6 +327,26 @@ class GetPosts:
             (data["post_id"], data["cat_id"], data["author_id"], str(data["name"]), data["publication_time"], data["words"], data["media"], time.time())
         )
         
+        # add subsite category
+        if self.db.execute_select_one("select * from categories where userid=%d", (data["cat_id"])) is None:
+            json = self.__get_category(data["cat_id"])
+            self.db.execute_insert("""
+                        insert into categories (userid, name, is_user, subscribers)
+                            values (%s, '%s', %d, %d);
+                    """,
+                    (json["id"], json['name'], max(0, 2 - json['type']), json["counters"]["subscribers"])
+            )
+            
+        # add author category
+        if self.db.execute_select_one("select * from categories where userid=%d", (data["author_id"])) is None:
+            json = self.__get_category(data["author_id"])
+            self.db.execute_insert("""
+                        insert into categories (userid, name, is_user, subscribers)
+                            values (%s, '%s', %d, %d);
+                    """,
+                    (json["id"], json['name'], max(0, 2 - json['type']), json["counters"]["subscribers"])
+            )
+        
         return data
         #print("added new post: [%d] %s" % (data["post_id"], data["name"]))
         
@@ -351,36 +383,9 @@ class GetPosts:
         category_subs = post_data[11]
         
         if views is None or bookmarks is None or rating is None or comments is None: return
-        
-        if category_subs is None:
-            json = self.__get_category(post_stats["subsite"]["id"], post_stats["subsite"]["type"] == 1)
-            time.sleep(self.api.min_delay)
-            category = json['name']
-            category_subs = json["counters"]["subscribers"]
-            self.db.execute_insert(
-                """
-                    insert into categories (userid, name, is_user, subscribers)
-                        values (%s, '%s', %d, %d);
-                """,
-                    (json["id"], json['name'], max(0, 2 - json['type']), category_subs)
-            )
 
-        category_subs = min(category_subs, 50000)
-
-        expected_views = pow(category_subs * 2.3, 0.71)
-        expected_likes = pow(category_subs * 3.5, 0.38)
-        expected_bookmarks = pow(category_subs * 3.5, 0.38)
-        expected_comments = pow(category_subs * 3.5, 0.38)
-        expected_reposts = 2
+        score = score_evaluation(words, media, views, bookmarks, rating, comments, reposts, category_subs)
         
-        score = (words / 500.0 +
-            media / 10.0 +
-            views / expected_views +
-            bookmarks / expected_bookmarks +
-            rating / expected_likes +
-            comments / expected_comments +
-            comments / expected_reposts)
-        score = int(score * 10)
         self.db.execute_update("update posts set score=%d where post_id='%d'", (score, post[0]))
         
         #if score > 50:
@@ -388,45 +393,6 @@ class GetPosts:
             #      (post_id, time.strftime('%H:%M %m-%d-%YMSK', time.localtime(publication_time + 10800)), str(score).zfill(4), title, category,
             #       words, media, views, bookmarks, rating, comments))
         #    self.db.execute_update("update posts set published=1 where post_id='%d'", (post[0]))
-
-        
-    def __get_post(self, post_id):
-        response = self.api.execute("entry/" + str(post_id))
-        
-        response_json = response.json()
-        print(str(response.status_code) + ": " + str(response_json))
-
-        if "error" in response_json:
-            self.db.execute(
-                f"""
-                    insert into post_errors (post_id, status_code, response)
-                        values ({post_id}, {response.status_code}, {json.dumps(response_json)});
-                """
-            )
-            self.stats.error_count += 1
-
-        else:
-            self.db.execute(
-                f"""
-                    insert into posts (id, json)
-                        values ({post_id}, {json.dumps(response_json)})
-                    on conflict (id)
-                        do update set json = excluded.json;
-                """
-            )
-            self.stats.post_count += 1
-
-        self.stats.request_count += 1
-        self.stats.requests_since_last_429 += 1
-
-    def print_post_info(self, id):
-        self.db.execute(f"delete from posts where post_id={id}")
-        
-        post = self.api.execute("entry/%d" % id)
-        if self.__is_error(post):
-            print("error")
-        
-        print(self.add_post_to_database(post.json()['result']))
 
 
 if __name__ == "__main__":

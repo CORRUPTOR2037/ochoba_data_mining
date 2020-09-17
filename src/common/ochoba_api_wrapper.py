@@ -1,6 +1,6 @@
 from os import environ
 from requests_toolbelt import sessions
-
+import time
 
 class OchobaApiWrapper:
     def __init__(self, config):
@@ -14,3 +14,9 @@ class OchobaApiWrapper:
 
     def execute(self, endpoint):
         return self.session.get(endpoint)
+    
+    def execute_with_delay(self, endpoint, delay=None):
+        if delay is None:
+            delay=self.min_delay
+        time.sleep(delay)
+        return self.execute(endpoint)

@@ -7,9 +7,5 @@
   "db": {
     "type": "url",
     "environ": "DATABASE_URL"
-  },
-  "parse_targets": {
-    "categories": ["132168", "261696", "64953", "64966"],
-    "users": ["74342", "132253", "212847"]
   }
 }
