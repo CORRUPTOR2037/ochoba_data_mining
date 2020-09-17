@@ -68,6 +68,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
+# WinMerge stuff:
+.bak
+
 # Sphinx documentation
 docs/_build/
 
