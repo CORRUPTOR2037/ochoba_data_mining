@@ -2,7 +2,6 @@ import json
 import time
 import re
 from datetime import datetime
-from dataclasses import dataclass
 import sys, traceback
 
 sys.path.append("../..")
@@ -17,9 +16,10 @@ class GetPosts:
         config = ConfigLoader.load()
         self.categories = []
         self.users = []
-        self.timeline_length = 100
+        self.timeline_length = 2000
         self.api = OchobaApiWrapper(config["api"])
         self.db = GetDataBaseWrapper(config["db"])
+        self.commit_every_step = False
         
         self.__init_database()
         
@@ -60,8 +60,9 @@ class GetPosts:
                 
                 parsed_entries += 1
                 self.add_post_to_database(post)
-
-            self.db.commit()
+            
+            if self.commit_every_step:
+                self.db.commit()
             
             try:
                 timeline_request_appendix = '&lastId=%d&lastSortingValue=%d' % (timeline["result"]["lastId"], timeline["result"]["lastSortingValue"])
@@ -69,7 +70,9 @@ class GetPosts:
                 print("no pagination data found at", url, timeline["result"]["lastId"], timeline["result"]["lastSortingValue"])
                 break
         
-        self.db.execute_update("update parse_data set value=%d where key='last_post_time';", (first_post))
+        self.db.execute_update("update parse_data set value=%d where key='last_post_time';", [first_post])
+        
+        self.db.commit()
         
         print("update categories")
         self.__update_categories()
@@ -98,21 +101,10 @@ class GetPosts:
             reposts = post_stats["counters"]["reposts"]
             
             if post[7] == 0:
-                if self.db.execute_select_one("select * from posts_views where post_id=%d", (post[0])) is None:
-                    self.db.execute_insert("insert into posts_views (post_id, count1hr, count2hr, count3hr, now) values (%d, 0, 0, 0, 0)",
-                                       (post[0]))
-                if self.db.execute_select_one("select * from posts_bookmarks where post_id=%d", (post[0])) is None:
-                    self.db.execute_insert("insert into posts_bookmarks (post_id, count1hr, count2hr, count3hr, now) values (%d, 0, 0, 0, 0)",
-                                       (post[0]))
-                if self.db.execute_select_one("select * from posts_comments where post_id=%d", (post[0])) is None:
-                    self.db.execute_insert("insert into posts_comments (post_id, count1hr, count2hr, count3hr, now) values (%d, 0, 0, 0, 0)",
-                                       (post[0]))
-                if self.db.execute_select_one("select * from posts_rating where post_id=%d", (post[0])) is None:
-                    self.db.execute_insert("insert into posts_rating (post_id, count1hr, count2hr, count3hr, now) values (%d, 0, 0, 0, 0)",
-                                       (post[0]))
-                if self.db.execute_select_one("select * from posts_reposts where post_id=%d", (post[0])) is None:
-                    self.db.execute_insert("insert into posts_reposts (post_id, count1hr, count2hr, count3hr, now) values (%d, 0, 0, 0, 0)",
-                                       (post[0]))
+                for i in ['views', 'bookmarks', 'comments', 'rating', 'reposts']:
+                    if self.db.execute_select_one(f"select * from posts_{i} where post_id=%d", [post[0]]) is None:
+                        self.db.execute_insert(f"insert into posts_{i} (post_id, count1hr, count2hr, count3hr, now) values (%d, 0, 0, 0, 0)",
+                                           [post[0]])
 
             if timeFromPublication > 43000:
                 nextState = 5
@@ -139,16 +131,18 @@ class GetPosts:
             self.publish(post, post_stats)
             if nextState >= 4:
                 self.db.execute(f"update posts set published=1 where post_id='{post[0]}'")
-                
-            self.db.commit()
+            
+            if self.commit_every_step:
+                self.db.commit()
         
+        self.db.commit()
             
     def __init_database(self):
         self.db.execute("""
                     create table if not exists categories (
-                        id integer primary key autoincrement not null,
+                        id SERIAL,
                         userid integer not null,
-                        name varchar,
+                        name text,
                         is_user integer not null,
                         subscribers integer
                     );
@@ -159,7 +153,7 @@ class GetPosts:
                         post_id integer primary key not null,
                         author_id integer not null,
                         cat_id integer not null,
-                        name varchar not null,
+                        name text not null,
                         publication_time integer not null,
                         words integer not null,
                         media integer not null,
@@ -218,17 +212,16 @@ class GetPosts:
 
         self.db.execute("""
                     create table if not exists parse_data (
-                        key varchar not null,
+                        key text not null,
                         value integer
                     );
             """)
-        if self.db.execute_select_one('select * from parse_data where value="last_post_time"', []) is None:
+        if self.db.execute_select_one("select * from parse_data where key = 'last_post_time';", []) is None:
             self.db.execute_insert("""
                     insert into parse_data (key, value)
-                    values ("last_post_time", 0);
+                    values ('last_post_time', 0);
             """, [])
             
-        
         self.db.commit()
         
     def __update_categories(self):
@@ -244,7 +237,8 @@ class GetPosts:
 
         self.categories = [{ "id": i[0], "userid": i[1], "name": i[2], "is_user": i[3], "subscribers": i[4]}
                            for i in self.db.execute_select("select * from categories;", [])]
-        self.db.commit()
+        if self.commit_every_step:
+            self.db.commit()
               
     
     def __get_category(self, userid):
@@ -277,7 +271,7 @@ class GetPosts:
 
     def add_post_to_database(self, post):
 
-        if self.db.execute_select_one("select * from posts where post_id=%d", (post["id"])) is not None:
+        if self.db.execute_select_one("select * from posts where post_id=%d", [post["id"]]) is not None:
             return
         
         data = {}
@@ -325,27 +319,27 @@ class GetPosts:
                 insert into posts (post_id, cat_id, author_id, name, publication_time, words, media, statsCalculated, published, last_update_time)
                 values (%d, %d, %d, "%s", %d, %d, %d, 0, 0, %d);
             """,
-            (data["post_id"], data["cat_id"], data["author_id"], str(data["name"]), data["publication_time"], data["words"], data["media"], time.time())
+            [data["post_id"], data["cat_id"], data["author_id"], str(data["name"]), data["publication_time"], data["words"], data["media"], time.time()]
         )
         
         # add subsite category
-        if self.db.execute_select_one("select * from categories where userid=%d", (data["cat_id"])) is None:
+        if self.db.execute_select_one("select * from categories where userid=%d", [data["cat_id"]]) is None:
             json = self.__get_category(data["cat_id"])
             self.db.execute_insert("""
                         insert into categories (userid, name, is_user, subscribers)
                             values (%s, '%s', %d, %d);
                     """,
-                    (json["id"], json['name'], max(0, 2 - json['type']), json["counters"]["subscribers"])
+                    [json["id"], json['name'], max(0, 2 - json['type']), json["counters"]["subscribers"]]
             )
             
         # add author category
-        if self.db.execute_select_one("select * from categories where userid=%d", (data["author_id"])) is None:
+        if self.db.execute_select_one("select * from categories where userid=%d", [data["author_id"]]) is None:
             json = self.__get_category(data["author_id"])
             self.db.execute_insert("""
                         insert into categories (userid, name, is_user, subscribers)
                             values (%s, '%s', %d, %d);
                     """,
-                    (json["id"], json['name'], max(0, 2 - json['type']), json["counters"]["subscribers"])
+                    [json["id"], json['name'], max(0, 2 - json['type']), json["counters"]["subscribers"]]
             )
         
         return data
@@ -366,7 +360,7 @@ class GetPosts:
                 left join posts_comments on posts.post_id=posts_comments.post_id
                 left join posts_reposts on posts.post_id=posts_reposts.post_id
                 where posts.post_id=%d
-            """, (post[0]))
+            """, [post[0]])
         
         if post_data is None: return
         
@@ -387,7 +381,7 @@ class GetPosts:
 
         score = score_evaluation(words, media, views, bookmarks, rating, comments, reposts, category_subs)
         
-        self.db.execute_update("update posts set score=%d where post_id='%d'", (score, post[0]))
+        self.db.execute_update("update posts set score=%d where post_id='%d'", [score, post[0]])
         
         #if score > 50:
             #print("Recommended: [https://dtf.ru/%d][%s][Score: %s] \"%s\" From %s / %d Words / %d Mediafiles / %d Views / %d Bookmarks / %d Rating / %d Comments" %

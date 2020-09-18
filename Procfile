@@ -1,2 +1,2 @@
-worker: python app/analyser.py
-web: gunicorn wsgi:app
+worker: python src/analyser/analyser.py
+web: gunicorn index:app

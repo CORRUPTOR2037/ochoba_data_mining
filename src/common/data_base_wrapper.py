@@ -1,11 +1,14 @@
 from os import environ
-from src.common.psycopg_database_wrapper import RemoteDataBaseWrapper , UrlDataBaseWrapper
-from src.common.sqlite_database_wrapper import SQLiteDataBaseWrapper 
 
 def GetDataBaseWrapper(config):
     if config["type"] == "remote":
+        from src.common.psycopg_database_wrapper import RemoteDataBaseWrapper
         return RemoteDataBaseWrapper(config)
+    
     elif config["type"] == "url":
-        return UrlDataBaseWrapper(url=environ[config['environ']])
-    elif config["type"] == "file":
+        from src.common.psycopg_database_wrapper import UrlDataBaseWrapper
+        return UrlDataBaseWrapper(url=config['environ'])
+    
+    elif config["type"] == "sqlite_file":
+        from src.common.sqlite_database_wrapper import SQLiteDataBaseWrapper 
         return SQLiteDataBaseWrapper(config)

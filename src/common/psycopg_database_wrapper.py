@@ -13,6 +13,9 @@ class RemoteDataBaseWrapper:
     def __del__(self):
         self.cursor.close()
         self.conn.close()
+        
+    def sanitize_query(self, query):
+        return query.replace("%d", "%s").replace('"%s"', "%s").replace("'%s'", "%s")
 
     def commit(self):
         self.conn.commit()
@@ -21,20 +24,25 @@ class RemoteDataBaseWrapper:
         self.cursor.execute(query)
 
     def execute_insert(self, query, values):
+        query = self.sanitize_query(query)
         self.cursor.execute(query, values)
 
     def execute_select(self, query, values):
+        query = self.sanitize_query(query)
         self.cursor.execute(query, values)
         return self.cursor.fetchall()
 
     def execute_select_one(self, query, values):
+        query = self.sanitize_query(query)
         self.cursor.execute(query, values)
         return self.cursor.fetchone()
 
     def execute_update(self, query, values):
+        query = self.sanitize_query(query)
         self.cursor.execute(query, values)
 
     def fetch_data(self, query, values):
+        query = self.sanitize_query(query)
         self.cursor.execute(query, values)
         data = self.cursor.fetchall()
         x = []

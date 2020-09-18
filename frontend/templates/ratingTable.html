@@ -1,0 +1,95 @@
+<head>
+	<meta charset="utf-8">
+    <title>Анализатор DTF - поиск лучших статей</title>
+	<link rel="stylesheet" href={{ url_for('static', filename='style.css') }}>
+</head>
+<body>
+	<div id="header">
+		<div>
+			<h1>Анализатор DTF</h1>
+			<a href="https://github.com/CORRUPTOR2037/ochoba_data_mining" style="float: right">Исходный код</a>
+		</div>
+		<div>
+			<label>Количество записей</label><input type="number" id="showCount" value="{{ count }}"/>
+			<label>Минимальный рейтинг</label><input type="number" id="minScore" value="{{ minScore }}"/>
+			<button onclick="reload()">Обновить</button>
+		</div>
+	</div>
+
+	<table id="mainTable">
+		<thead>
+		<tr>
+			<th>Название</th>
+			<th>Автор</th>
+			<th>Подсайт</th>
+			<th>Время публ.</th>
+			<th>Рейтинг</th>
+			<th>Кол. слов</th>
+			<th>Кол. медиафайлов</th>
+			<th>Голоса</th>
+			<th>Просмотры</th>
+			<th>Закладки</th>
+			<th>Комментарии</th>
+			<th>Репосты</th>
+		</tr>
+		</thead>
+		<tbody>
+			{{ ratingRows|safe }}
+		</tbody>
+	</table>
+
+	<script type="text/javascript">
+		var table = document.getElementById("mainTable");
+		var tableHead = table.getElementsByTagName("thead")[0];
+		var tableBody = table.getElementsByTagName("tbody")[0];
+
+		function sortBy(columnIndex){
+			var rows = tableBody.getElementsByTagName("tr");
+			var headers = Array.from(tableHead.getElementsByTagName("th"));
+			var header = headers[columnIndex];
+			var order = 1;
+			if (header.getAttribute("sorted") == "true"){
+				order = -1;
+			}
+
+			headers.forEach((header) => { header.removeAttribute("sorted"); });
+			
+			var sortArray = [];
+			
+			var isIntegerSort = columnIndex > 2 ;
+			for (var i = 0; i < rows.length; i++){
+				var data = [rows[i], rows[i].children[columnIndex].getAttribute("content")];
+				if (isIntegerSort)
+					data[1] = parseInt(data[1]);
+				sortArray.push(data);
+			}
+			sortArray.sort(function(a, b) {
+				a = a[1]; b = b[1];
+				if (a < b) return -1 * order;
+				if (a > b) return 1 * order;
+				return 0;
+			});
+			tableBody.innerHTML = "";
+			for (var i = 0; i < sortArray.length; i++){
+				tableBody.appendChild(sortArray[i][0]);
+			}
+			header.setAttribute("sorted", order > 0 ? true : false);
+		}
+		
+		function insertSortButtons(table){
+			var headers = tableHead.getElementsByTagName("th");
+			for (var i = 0; i < headers.length; i++){
+				headers[i].innerHTML = "<button onclick='sortBy(" + i + ")'>" + headers[i].innerHTML + "</button>"; 
+			}
+		}
+		
+		function reload(){
+			var count = document.getElementById("showCount").value;
+			var score = document.getElementById("minScore").value;
+			var href = window.location.href.split('?')[0] + "?count=" + count + "&minScore=" + score;
+			window.location.href = href;
+		}
+
+		insertSortButtons(table);
+	</script>
+</body>

@@ -1,0 +1,67 @@
+#header {
+	position: fixed;
+	height: 80px;
+	top: 0px;
+	left: 0px;
+	padding: 10px 20px;
+	right: 0px;
+	background-color: #d9f5ff;
+}
+
+#header div {
+	margin-bottom: 10px;
+}
+
+#header h1 {
+	margin: 0px;
+	width: 20%;
+	display: inline-block;
+}
+
+#header input[type="number"] {
+	max-width: 50px;
+	margin: 0px 10px;
+}
+
+#mainTable {
+	margin-top: 100px;
+	font-size: 16px;
+}
+
+#mainTable th button {
+    width: 100%;
+	height: 100%;
+    border-radius: 0px;
+    border: 0px;
+	font-size: 16px;
+	font-weight: bold;
+	height: 45px;
+}
+#mainTable th[sorted="true"] button {
+	background-color: #99cc99;
+}
+#mainTable th[sorted="false"] button {
+	background-color: #cc9999;
+}
+#mainTable tr {
+	height: 20px;
+	max-height: 20px;
+}
+
+#mainTable td {
+	text-align: center;
+	background-color: #eaeaea;
+	padding: 4px;
+}
+#mainTable td:first-child {
+	max-width: 500px;
+	text-align: left;
+}
+
+#mainTable td:first-child a {
+	overflow: hidden;
+	text-overflow: ellipsis;
+    display: -webkit-box;
+   -webkit-line-clamp: 1; /* number of lines to show */
+   -webkit-box-orient: vertical;
+}
