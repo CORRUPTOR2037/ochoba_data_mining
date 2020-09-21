@@ -7,7 +7,7 @@ def GetDataBaseWrapper(config):
     
     elif config["type"] == "url":
         from src.common.psycopg_database_wrapper import UrlDataBaseWrapper
-        return UrlDataBaseWrapper(url=config['environ'])
+        return UrlDataBaseWrapper(config['environ'])
     
     elif config["type"] == "sqlite_file":
         from src.common.sqlite_database_wrapper import SQLiteDataBaseWrapper 

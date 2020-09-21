@@ -7,5 +7,9 @@
   "db": {
     "type": "url",
     "environ": "DATABASE_URL"
+  },
+  "parser": {
+	"categories_update_delay": 20000,
+	"min_acceptable_score": 15
   }
 }

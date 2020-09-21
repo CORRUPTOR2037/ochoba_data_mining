@@ -10,7 +10,7 @@ class OchobaApiWrapper:
             self.session.headers.update({"X-Device-Token": config["token"]})
         else:
             self.session.headers.update({"X-Device-Token": config['environ']})
-        self.min_delay = 1
+        self.min_delay = 0.6
 
     def execute(self, endpoint):
         return self.session.get(endpoint)

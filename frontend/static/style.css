@@ -1,67 +1,284 @@
-#header {
-	position: fixed;
-	height: 80px;
-	top: 0px;
-	left: 0px;
-	padding: 10px 20px;
-	right: 0px;
-	background-color: #d9f5ff;
+@font-face {
+  font-family: FuturaPT; src: url(FuturaPT.ttf);
 }
 
-#header div {
+body, button {
+	font-family: FuturaPT;
+	font-size: 16px;
+}
+body {
+	margin: 8px;
+}
+#header {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	padding: 10px 20px 0px;
+	right: 0px;
+	background-color: #d9f5ff;
+	height: 90px;
+	z-index: 2;
+}
+
+.block-left {
+	float: left;
+}
+
+.block-right {
+	float: right;
+}
+#header > .block-right > *{
+	display: block;
+	text-align: right;
+}
+
+#header > div {
 	margin-bottom: 10px;
 }
 
 #header h1 {
 	margin: 0px;
-	width: 20%;
 	display: inline-block;
+}
+
+.custom-checkbox {
+	position: absolute;
+	z-index: -1;
+	opacity: 0;
+}
+
+.custom-checkbox+label {
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
+}
+
+.custom-checkbox+label::before {
+    content: 'x';
+	text-align: center;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 1px solid #adb5bd;
+    border-radius: 0.25em;
+    margin-right: 0.5em;
+    background-color: white;
+	color: white;
+	font-weight: bold;
+	line-height: 13px;
+}
+
+.custom-checkbox+label:hover::before {
+    border-color: #b3d7ff;
+}
+
+.custom-checkbox:checked+label::before {
+    border-color: #0b76ef;
+    background-color: #0b76ef;
+}
+
+#settingsTitle {
+	color: #939393;
+	font-weight: bold;
+	position: absolute;
+	margin-top: -9px;
+	margin-left: 80px;
+	background-color: #d9f5ff;
+	padding: 0px 10px;
 }
 
 #header input[type="number"] {
 	max-width: 50px;
-	margin: 0px 10px;
+	border: 1px solid #acacac;
+	border-radius: 4px;
+	height: 25px;
+	padding: 5px;
+	-moz-appearance: textfield;
+	color: #888;
+	margin: 5px 10px 0px;
+}
+
+#reloadButton {
+	margin: 20px 0px;
+	height: 40px;
+	width: 120px;
+	border-radius: 3px;
+	text-align: left;
+	position: relative;
+	background-color: white;
+	border: 1px solid #acacac;
+	border-radius: 6px;
+	padding: 0px 12px;
+	cursor: pointer;
+}
+#reloadButton:hover {
+	background-color: lightgray;
+}
+#reloadButton:after{
+	content: " ";
+	width: 26px;
+	height: 26px;
+	background-image: url(ui/update.png);
+	display: inline-block;
+	background-size: 100%;
+	position: absolute;
+	right: 8px;
+	top: 6px;
+}
+
+#settingsBlock {
+	margin-left: 150px;
+	width: 520px;
+	display: inline-block;
+}
+#updatePanel {
+	height: 82px;
+	display: inline-block;
+	float: right;
+}
+#settingsPanel {
+	border-radius: 8px;
+	border: 2px solid #939393;
+	display: inline-block;
+	margin-bottom: 0px !important;
+	padding: 6px;
+	height: 64px;
+}
+
+#settingsPanel .block-right {
+	margin-left: 15px;
+}
+
+#settingsPanel .block-right label {
+	width: 130px;
+	display: inline-block;
 }
 
 #mainTable {
-	margin-top: 100px;
+	margin-top: 140px;
 	font-size: 16px;
 }
 
-#mainTable th button {
+#headTable {
+	font-size: 16px;
+	height: 40px;
+	position: fixed;
+	top: 100px;
+	left: 8px;
+	right: 8px;
+	background-color: #ffffff;
+	z-index: 2;
+}
+
+table {
+	border-collapse: collapse!important;
+}
+
+#headTable th {
+	padding: 0;
+	border-bottom: 1px solid #eaeaea;
+}
+
+#headTable th button {
     width: 100%;
 	height: 100%;
     border-radius: 0px;
     border: 0px;
 	font-size: 16px;
 	font-weight: bold;
-	height: 45px;
+	height: 40px;
+	background-color: #ffffff;
+	cursor: pointer;
+	text-align: left;
+	color: #939393;
 }
-#mainTable th[sorted="true"] button {
-	background-color: #99cc99;
+#headTable th[sorted="true"] button {
+	color: #1aae1a;
+	text-decoration: underline;
 }
-#mainTable th[sorted="false"] button {
-	background-color: #cc9999;
+#headTable th[sorted="false"] button {
+	color: #ca0d0d;
+	text-decoration: underline;
+}
+#headTable th button:hover {
+    background-color: #18a0fb;
+	color: black !important;
 }
 #mainTable tr {
-	height: 20px;
-	max-height: 20px;
+	height: 60px;
+	max-height: 60px;
+	background-color: #eaeaea;
+}
+#mainTable tr:nth-child(2n) {
+	background-color: #ffffff;
+}
+
+
+#mainTable td a, #mainTable td span {
+	margin: 8px;
+	text-decoration: none;
+	color: #000;
+}
+#mainTable td a:hover {
+	color: #aaa;
 }
 
 #mainTable td {
-	text-align: center;
-	background-color: #eaeaea;
-	padding: 4px;
-}
-#mainTable td:first-child {
-	max-width: 500px;
 	text-align: left;
+	position: relative;
 }
 
-#mainTable td:first-child a {
+.post-title {
+	width: 400px;
+	min-width: 400px;
+	padding-left: 12px !important;
+}
+
+.post-title a {
 	overflow: hidden;
 	text-overflow: ellipsis;
     display: -webkit-box;
-   -webkit-line-clamp: 1; /* number of lines to show */
+   -webkit-line-clamp: 2; /* number of lines to show */
    -webkit-box-orient: vertical;
+    height: 44px;
+	z-index: 1;
+	
+}
+
+.post-author {
+	width: 200px;
+	min-width: 200px;
+}
+
+.post-time {
+	width: 200px;
+	min-width: 200px;
+}
+.post-time span {
+	display: block;
+}
+
+.post-number {
+	width: 100px;
+	min-width: 100px;
+}
+
+#mainTable td:first-child a:before {
+	height: 60px;
+	width: 15px;
+	display: block;
+	position: absolute;
+	margin-left: -20px;
+	margin-top: -8px;
+	content: " ";
+	z-index: 0;
+}
+#mainTable td.blog a:before {
+	background-color: #fbd5d5;
+}
+#mainTable td.editorial a:before {
+	background-color: #cce3ff;
+}
+#mainTable td.subsite a:before {
+	background-color: #fffacc;
 }

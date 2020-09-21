@@ -5,43 +5,61 @@
 </head>
 <body>
 	<div id="header">
-		<div>
+		<div class="block-left">
 			<h1>Анализатор DTF</h1>
-			<a href="https://github.com/CORRUPTOR2037/ochoba_data_mining" style="float: right">Исходный код</a>
+			<p style="margin: 0px;">Всё интересное, что публиковали на сайте за неделю</p>
 		</div>
-		<div>
-			<label>Количество записей</label><input type="number" id="showCount" value="{{ count }}"/>
-			<label>Минимальный рейтинг</label><input type="number" id="minScore" value="{{ minScore }}"/>
-			<button onclick="reload()">Обновить</button>
+		<div id="settingsBlock">
+			<span id="settingsTitle">Фильтры</span>
+			<div id="settingsPanel">
+				<div class="block-left">
+					<input type="number" id="showCount" value="{{ count }}"/><label>Количество записей</label>
+					<br>
+					<input type="number" id="minScore" value="{{ minScore }}"/><label>Минимальный рейтинг</label>
+				</div>
+				<div class="block-right">
+					<input type="checkbox" id="showBlogs" class="custom-checkbox" {{ checkBlogs }}/><label for="showBlogs">Блоги</label>
+					<br>
+					<input type="checkbox" id="showSubsites" class="custom-checkbox" {{ checkSubsites }}/><label for="showSubsites">Подсайты</label>
+					<br>
+					<input type="checkbox" id="showEditorial" class="custom-checkbox" {{ checkEditorial }}/><label for="showEditorial">Редакционное</label>
+				</div>
+			</div>
+			<div id="updatePanel">
+				<button id="reloadButton" onclick="reload()">Обновить</button>
+			</div>
+		</div>
+		<div class="block-right">
+			<span>Вер. 1.1</span><br/>
+			<span><a href="https://github.com/CORRUPTOR2037/ochoba_data_mining" style="float: right">Исходный код</a></span>
 		</div>
 	</div>
+	<div id="headTable" cellspacing=0 border=0 CELLPADDING=0>
+		<table>
+			<tr>
+				<th class="post-title">Название</th><!--
+				--><th class="post-author">Автор</th><!--
+				--><th class="post-author">Подсайт</th><!--
+				--><th class="post-time">Время публ.</th><!--
+				--><th class="post-number">Рейтинг</th><!--
+				--><th class="post-number">Кол. слов</th><!--
+				--><th class="post-number">Кол. медиа</th><!--
+				--><th class="post-number">Голоса</th><!--
+				--><th class="post-number">Просмотры</th><!--
+				--><th class="post-number">Закладки</th><!--
+				--><th class="post-number">Комментарии</th><!--
+				--><th class="post-number">Репосты</th>
+			</tr>
+		</table>
+	</div>
 
-	<table id="mainTable">
-		<thead>
-		<tr>
-			<th>Название</th>
-			<th>Автор</th>
-			<th>Подсайт</th>
-			<th>Время публ.</th>
-			<th>Рейтинг</th>
-			<th>Кол. слов</th>
-			<th>Кол. медиафайлов</th>
-			<th>Голоса</th>
-			<th>Просмотры</th>
-			<th>Закладки</th>
-			<th>Комментарии</th>
-			<th>Репосты</th>
-		</tr>
-		</thead>
-		<tbody>
-			{{ ratingRows|safe }}
-		</tbody>
+	<table id="mainTable" cellspacing=0 border=0 CELLPADDING=0>
+		{{ ratingRows|safe }}
 	</table>
-
 	<script type="text/javascript">
-		var table = document.getElementById("mainTable");
-		var tableHead = table.getElementsByTagName("thead")[0];
-		var tableBody = table.getElementsByTagName("tbody")[0];
+		
+		var tableHead = document.getElementById("headTable");
+		var tableBody = document.getElementById("mainTable");
 
 		function sortBy(columnIndex){
 			var rows = tableBody.getElementsByTagName("tr");
@@ -63,12 +81,16 @@
 					data[1] = parseInt(data[1]);
 				sortArray.push(data);
 			}
+			
+			var orderMult = order;
+			if (!isIntegerSort) orderMult = -orderMult;
 			sortArray.sort(function(a, b) {
 				a = a[1]; b = b[1];
-				if (a < b) return -1 * order;
-				if (a > b) return 1 * order;
+				if (a < b) return  1 * orderMult;
+				if (a > b) return -1 * orderMult;
 				return 0;
 			});
+			
 			tableBody.innerHTML = "";
 			for (var i = 0; i < sortArray.length; i++){
 				tableBody.appendChild(sortArray[i][0]);
@@ -86,10 +108,14 @@
 		function reload(){
 			var count = document.getElementById("showCount").value;
 			var score = document.getElementById("minScore").value;
-			var href = window.location.href.split('?')[0] + "?count=" + count + "&minScore=" + score;
+			var blogs = document.getElementById("showBlogs").checked;
+			var subsites = document.getElementById("showSubsites").checked;
+			var editorial = document.getElementById("showEditorial").checked;
+			
+			var href = window.location.href.split('?')[0] + "?count=" + count + "&minScore=" + score + "&showBlogs=" + blogs + "&showSubsites=" + subsites + "&showEditorial=" + editorial;
 			window.location.href = href;
 		}
 
-		insertSortButtons(table);
+		insertSortButtons(tableHead);
 	</script>
 </body>
