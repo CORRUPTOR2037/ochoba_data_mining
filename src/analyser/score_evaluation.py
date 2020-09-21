@@ -35,12 +35,3 @@ def score_evaluation(words, media, views, bookmarks, rating, comments, reposts, 
 if __name__== "__main__":
     import sys
     print(score_evaluation_full(*[int(i) for i in sys.argv[1:9]]))
-    
-    # words media rating views bookmarks comments reposts
-    #test = {"Богуславкий": [1169, 10, 878, 38323, 540, 593, 2, 115],
-    #        "Бэтмен": [4715, 56, 171, 5992, 315, 31, 1, 269966],
-    #        "Хасаги": [77, 2, 1, 23, 339, 3, 84, 0, 269],
-    #        "ЕлистратовМем": [8, 1, 10, 284, 2, 51, 1, 4],
-    #        "Анализатор": [463, 1, 131, 2016, 110, 61, 1, 270000]}
-    #for k, v in test.items():
-    #    print(k, score_evaluation_full(v[0], v[1], v[3], v[4], v[2], v[5], v[6], v[7]))
